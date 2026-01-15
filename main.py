@@ -1,4 +1,4 @@
-from telegram.ext import CommandHandler, Updater, run_async, MessageHandler, ConversationHandler, Filters
+from telegram.ext import CommandHandler, Updater, MessageHandler, ConversationHandler, Filters
 from datetime import datetime
 import os
 import hashlib
@@ -9,6 +9,8 @@ import string
 import random
 import base64
 import logging
+from telegram import run_async
+
 
 try:
     import requests
