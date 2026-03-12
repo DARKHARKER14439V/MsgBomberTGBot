@@ -1,4 +1,5 @@
 from telegram.ext import CommandHandler, Updater, MessageHandler, ConversationHandler, Filters
+
 from datetime import datetime
 import os
 import hashlib
@@ -9,8 +10,18 @@ import string
 import random
 import base64
 import logging
-from telegram import run_async
 
+# Conversation states
+NUMBER, COUNT, DELAY = range(3)
+
+
+# Logger setup
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+logger = logging.getLogger(__name__)
 
 try:
     import requests
@@ -35,9 +46,8 @@ country_codes = {
     '91': 'IN'
 }
 
-NUMBER, MSGS, DELAY = range(3)
 
-@run_async
+
 def getapi(pn, lim, cc):
     global country_codes
     cc = str(cc).strip()
@@ -357,7 +367,6 @@ def getapi(pn, lim, cc):
             return False
     return False
 
-@run_async
 def bomb(target, counter, delay, ch, cc, update, context, msg_id):
     chat_id = update.effective_chat.id
     failed = 0
@@ -398,11 +407,19 @@ def bomb(target, counter, delay, ch, cc, update, context, msg_id):
         return
     context.bot.sendMessage(chat_id=chat_id, text="Bombing Completed!", reply_to_message_id=msg_id)
 
-@run_async
 def do_bomb(num, ctr, delay, update, context, msg_id):
     chat_id = update.effective_chat.id
     pn = num
+
+    if not ctr.isdigit():
+        context.bot.sendMessage(chat_id=update.effective_chat.id, text="Please send a valid number.")
+        return
+
     nm = int(ctr)
+
+
+
+
     dl = float(delay)
     maxlim = 500
     if nm > maxlim:
@@ -411,37 +428,23 @@ def do_bomb(num, ctr, delay, update, context, msg_id):
     ch = [i for i in range(19)]
     bomb(pn, nm, dl, ch, '91', update, context, msg_id)
 
-@run_async
 def start(update, context):
     chat_id = update.effective_chat.id
     msg_id = update.effective_message.message_id
-    if chat_id not in Config.AUTH_USERS:
-        context.bot.sendMessage(chat_id=chat_id, text="You are not authorized to use this bot!", reply_to_message_id=msg_id)
-        return
-    context.bot.sendMessage(chat_id=chat_id, text="Please use me responsibly! Press /bomb to use me", reply_to_message_id=msg_id)
+    context.bot.sendMessage(chat_id=chat_id, text="Please use me responsibly! Press /bomb to use me")
 
-@run_async
 def start_bomb(update, context):
-    chat_id  = update.effective_chat.id
-    msg_id = update.effective_message.message_id
-    if chat_id not in Config.AUTH_USERS:
-        context.bot.sendMessage(chat_id=chat_id, text="You are not authorized to use this bot!", reply_to_message_id=msg_id)
-        return
-    context.bot.sendMessage(chat_id=chat_id, text="Alright! Send me the number you want to bomb!", reply_to_message_id=msg_id)
+    update.message.reply_text("Alright! Send me the number.")
     return NUMBER
 
-@run_async
 def number(update, context):
-    chat_id = update.effective_chat.id
-    context.user_data["num"] = update.message.text
-    msg_id = update.effective_message.message_id
-    if update.message.text in Config.NO_BOMB_NUMS:
-        context.bot.sendMessage(chat_id=chat_id, text="Won\'t bomb this number, it\'s protected! Press /bomb to start again!", reply_to_message_id=msg_id)
-        return
-    context.bot.sendMessage(chat_id=chat_id, text="Will bomb " + update.message.text + "! Now provide the number of messages to send", reply_to_message_id=msg_id)
-    return MSGS
+    num = update.message.text
+    context.user_data['number'] = num
 
-@run_async
+    update.message.reply_text("How many messages do you want to send?")
+    
+    return COUNT
+
 def msgs(update, context):
     chat_id = update.effective_chat.id
     context.user_data["msgs"] = update.message.text
@@ -449,58 +452,55 @@ def msgs(update, context):
     context.bot.sendMessage(chat_id=chat_id, text=update.message.text + " number of messages will be sent! Now provide delay", reply_to_message_id=msg_id)
     return DELAY
 
-@run_async
 def delay(update, context):
-    chat_id = update.effective_chat.id
-    context.user_data["delay"] = update.message.text
-    msg_id = update.effective_message.message_id
-    try:
-        num = context.user_data["num"]
-        ctr = context.user_data["msgs"]
-        delay = context.user_data["delay"]
-        context.user_data["engaged"] = True
-        context.bot.sendMessage(chat_id=chat_id, text="Delay of " + update.message.text + " seconds has been set!", reply_to_message_id=msg_id)
-        do_bomb(num,ctr,delay,update,context,msg_id)
-        text = "Bombing " + num + " with " + ctr + " messages, each with a delay of " + delay + " seconds..."
-        context.bot.sendMessage(chat_id=chat_id, text=text)
-        context.bot.sendMessage(chat_id=chat_id, text="Bombing now...\nPress /stop to stop the bombing")
-    except IndexError:
-        context.bot.sendMessage(chat_id=chat_id,text="You missed one or more parameters, exiting...")
-        return
+    dl = update.message.text
+
+    num = context.user_data['number']
+    ctr = context.user_data['count']
+
+    context.user_data["engaged"] = True   # ⭐ ADD THIS LINE
+
+    update.message.reply_text("Starting attack...")
+
+    do_bomb(num, ctr, dl, update, context, update.message.message_id)
+
     return ConversationHandler.END
 
-@run_async
 def error(update, context):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, context.error)
 
-@run_async
+
 def cancel(update, context):
     chat_id = update.effective_chat.id
     msg_id = update.effective_message.message_id
     context.bot.sendMessage(chat_id=chat_id, text="Operation cancelled by user", reply_to_message_id=msg_id)
     return ConversationHandler.END
 
-@run_async
 def stop_bomb(update, context):
-    chat_id = update.effective_chat.id
-    msg_id = update.effective_message.message_id
     context.user_data["engaged"] = False
-    context.bot.sendMessage(chat_id=chat_id, text="Stopping bombing...", reply_to_message_id=msg_id)
+    update.message.reply_text("Stopping bombing...")
+
+def count(update, context):
+    ctr = update.message.text
+    context.user_data['count'] = ctr
+
+    update.message.reply_text("Enter delay between messages (seconds)")
+    return DELAY
 
 def main():
     updater = Updater(token=Config.BOT_TOKEN, use_context=True)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler('start',start))
     conv_handler = ConversationHandler(
-        entry_points = [CommandHandler('bomb', start_bomb)],
-        states = {
-            NUMBER: [MessageHandler(Filters.text, number)],
-            MSGS: [MessageHandler(Filters.text, msgs)],
-            DELAY: [MessageHandler(Filters.text, delay)]
-        },
-        fallbacks=[CommandHandler('cancel', cancel)]
-    )
+    entry_points=[CommandHandler('bomb', start_bomb)],
+    states={
+        NUMBER: [MessageHandler(Filters.text & ~Filters.command, number)],
+        COUNT: [MessageHandler(Filters.text & ~Filters.command, count)],
+        DELAY: [MessageHandler(Filters.text & ~Filters.command, delay)],
+    },
+    fallbacks=[CommandHandler('cancel', cancel)]
+)
     dp.add_handler(conv_handler)
     dp.add_handler(CommandHandler('stop',stop_bomb))
     dp.add_error_handler(error)
@@ -510,3 +510,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+
+
