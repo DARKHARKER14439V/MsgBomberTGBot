@@ -1,7 +1,7 @@
 import os
 class Config(object):
     # The bot-token which you can get from @Botfather
-    BOT_TOKEN = "8773416199:AAFqMa3OMdwIsjEJ4ZlIph6WrQRO6i5v-2c"
+    BOT_TOKEN = "8773416199:AAGkERDqcDU9oIrCLQNE5zyXJbF8lOoGDdw"
     # There is no measure to limit who can use this bot, so add userids of users authorized to use this bot
     AUTH_USERS = [8124480686]
     # Add numbers below who shouldn't be bombed ever
