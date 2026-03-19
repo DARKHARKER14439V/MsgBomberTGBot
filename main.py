@@ -1,5 +1,6 @@
 from telegram.ext import CommandHandler, Updater, MessageHandler, ConversationHandler, Filters
 
+from flask import Flask
 from datetime import datetime
 import os
 import hashlib
@@ -13,7 +14,6 @@ import logging
 
 # Conversation states
 NUMBER, COUNT, DELAY = range(3)
-
 
 # Logger setup
 logging.basicConfig(
@@ -38,15 +38,42 @@ except ImportError:
     print("You removed the config file! Exiting now...")
     exit()
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',level=logging.INFO)
-
 count_inf = 0
 
 country_codes = {
     '91': 'IN'
 }
 
+# ================== FLASK SERVER (RENDER FIX) ==================
 
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    port = int(os.environ.get("PORT", 10000))  # Render port
+    app.run(host="0.0.0.0", port=port)
+
+def keep_alive():
+    t = threading.Thread(target=run)
+    t.start()
+
+# ================== MAIN BOT ==================
+
+if __name__ == '__main__':
+    keep_alive()   # 🔥 IMPORTANT (Render ke liye)
+
+    updater = Updater(Config.BOT_TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    # 👉 Yaha apne handlers add karo
+    # Example:
+    # dp.add_handler(CommandHandler("start", start))
+
+    updater.start_polling()
+    updater.idle()
 
 def getapi(pn, lim, cc):
     global country_codes
