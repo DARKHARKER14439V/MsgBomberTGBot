@@ -1,10 +1,14 @@
 import os
+
 class Config(object):
-    # The bot-token which you can get from @Botfather
-    BOT_TOKEN = ""
-    # There is no measure to limit who can use this bot, so add userids of users authorized to use this bot
+    # Bot token (Render se aayega)
+    BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+    # Authorized users
     AUTH_USERS = [8124480686]
-    # Add numbers below who shouldn't be bombed ever
+
+    # Protected numbers
     NO_BOMB_NUMS = []
-    # Add userids below of users who should have sudo authority over bot, i.e., have no bombing limits
-    GOD_USERS = [693236796,1074732684]
+
+    # Admin / sudo users
+    GOD_USERS = [693236796, 1074732684]
